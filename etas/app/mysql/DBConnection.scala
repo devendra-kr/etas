@@ -14,6 +14,8 @@ import java.sql.Timestamp
 import models.Cab
 import models.Booking
 import models.Request
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 /**
  *
@@ -43,9 +45,24 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   def employees(): Future[Seq[Employee]] = db.run {
     Employees.result
   }
-  
+
   def employee(id: Long): Future[Seq[Employee]] = db.run {
     Employees.filter(f => f.id === id).result
+  }
+
+  def insertEmployee(emp: Employee) = {
+    Await.result(db.run(DBIO.seq(
+      Employees += emp,
+      Employees.result.map(println))), Duration.Inf)
+  }
+  
+  def updateEmployee(emp: Employee) = {
+      val newEmp = for (e <- Employees if e.id === emp.id) yield (e)
+      db.run(newEmp.update(emp)) map { _ > 0 }
+  }
+  
+  def deleteEmployee(id: Long) = {
+      db.run(Employees.filter(_.id === id).delete) map { _ > 0 }
   }
 
   private class CabTable(tag: Tag) extends Table[Cab](tag, "cab") {
@@ -63,9 +80,29 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   def cabs(): Future[Seq[Cab]] = db.run {
     Cabs.result
   }
-  
+
   def cab(id: Long): Future[Seq[Cab]] = db.run {
     Cabs.filter(f => f.id === id).result
+  }
+
+  def cab(cab: Cab) = {
+    Await.result(db.run(DBIO.seq(
+      Cabs += cab,
+      Cabs.result.map(println))), Duration.Inf)
+  }
+  
+  def updateCab(cab: Cab) = {
+      val newCab = for (c <- Cabs if c.id === cab.id) yield (c)
+      db.run(newCab.update(cab)) map { _ > 0 }
+  }
+  
+  def updateCab(id: Long, status: Boolean) = {
+      val newCab = for (c <- Cabs if c.id === id) yield (c.status)
+      db.run(newCab.update(status)) map { _ > 0 }
+  }
+   
+  def deleteCab(id: Long) = {
+      db.run(Cabs.filter(_.id === id).delete) map { _ > 0 }
   }
 
   private class BookingTable(tag: Tag) extends Table[Booking](tag, "booking") {
@@ -98,6 +135,5 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   def requests(): Future[Seq[Request]] = db.run {
     Requests.result
   }
-
 
 }

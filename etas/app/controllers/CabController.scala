@@ -8,28 +8,93 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext
 import play.api.libs.json.Json
 import models.CabClient
+import play.api.libs.json.JsValue
+import play.api.libs.json.JsResult
+import play.api.libs.json.JsSuccess
+import models.Cab
 
 /**
  * This controller creates an `Action` to handle HTTP requests to the
  * application's home page.
  */
 @Singleton
-class CabController @Inject()(cc: ControllerComponents, dbc: DBConnection)(implicit ec: ExecutionContext) extends AbstractController(cc) {
-  
+class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(implicit ec: ExecutionContext) extends AbstractController(cc) {
+
   def getCabs = Action.async { implicit request =>
     dbc.cabs().map { cab =>
       val res = cab.map(c => CabClient(c.id, c.registrationNumber, c.driverId, setStatus(c.cabStatus), c.comments, c.varancy))
       Ok(Json.toJson(res))
     }
   }
-  
-  val setStatus = (x: Boolean) => if(x) "AVAILABLE" else "UNAVAILABLE"
-  
-  
+
+  val setStatus = (x: Boolean) => if (x) "AVAILABLE" else "UNAVAILABLE"
+    
+  val setStatusBool = (x: String) => x.equals("AVAILABLE")
+
   def getCab(id: Long) = Action.async { implicit request =>
     dbc.cab(id).map { cab =>
       val res = cab.map(c => CabClient(c.id, c.registrationNumber, c.driverId, setStatus(c.cabStatus), c.comments, c.varancy))
       Ok(Json.toJson(res))
     }
   }
+
+  def reads(json: JsValue): JsResult[CabClient] = {
+    val id = (json \ "cabId").as[Long]
+    val registrationNumber = (json \ "registrationNumber").as[String]
+    val driverId = (json \ "driverId").as[Long]
+    val cabStatus = (json \ "cabStatus").as[String]
+    val comments = (json \ "comments").as[String]
+    val varancy = (json \ "varancy").as[Int]
+    JsSuccess(CabClient(id, registrationNumber, driverId, cabStatus, Some(comments), varancy))
+  }
+  
+  def saveCab = Action { request =>
+    val json = request.body.asJson.get
+    val cab = json.as[CabClient]
+    val newCab = Cab(cab.cabId, cab.registrationNumber, cab.driverId, setStatusBool(cab.cabStatus), cab.comments, cab.varancy)
+    dbc.cab(newCab)
+    Ok
+  }
+  
+  /*curl \
+    --header "Content-type: application/json" \
+    --request POST \
+    --data '{"cabId": 2,"registrationNumber": "String","driverId": 2,"cabStatus": "Avl","comments": "","varancy": 4}' \
+    http://localhost:9000/cabs
+    * 
+		*/
+  
+  def updateCab = Action { request =>
+    val json = request.body.asJson.get
+    val cab = json.as[CabClient]
+    val newCab = Cab(cab.cabId, cab.registrationNumber, cab.driverId, setStatusBool(cab.cabStatus), cab.comments, cab.varancy)
+    dbc.updateCab(newCab)
+    Ok
+  }
+  
+  /*curl \
+    --header "Content-type: application/json" \
+    --request PUT \
+    --data '{"cabId": 2,"registrationNumber": "String","driverId": 2,"cabStatus": "Avl","comments": "","varancy": 4}' \
+    http://localhost:9000/cabs
+    * 
+		*/
+  
+  def updateCabStatusAsActive(id: Long) = updateCabStatus(id, true)
+
+  def updateCabStatusAsInActive(id: Long) = updateCabStatus(id, false)
+  
+  private def updateCabStatus(id: Long, status: Boolean) = Action { request =>
+    dbc.updateCab(id, status)
+    Ok
+  }
+   
+   /* curl -X PUT "http://localhost:9000/cabs/2/unavailable" */
+  
+   def deleteCab(id: Long) = Action.async { implicit request =>
+    dbc.deleteCab(id).map { cab => Ok(Json.toJson(cab))
+    }
+  }
+  
+  /* curl -X DELETE "http://localhost:9000/cabs/2" */
 }
