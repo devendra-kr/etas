@@ -21,7 +21,7 @@ import models.Cab
 class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(implicit ec: ExecutionContext) extends AbstractController(cc) {
 
   def getCabs = Action.async { implicit request =>
-    dbc.cabs().map { cab =>
+    dbc.getAllCabs().map { cab =>
       val res = cab.map(c => CabClient(c.id, c.registrationNumber, c.driverId, setStatus(c.cabStatus), c.comments, c.varancy))
       Ok(Json.toJson(res))
     }
@@ -32,7 +32,7 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
   val setStatusBool = (x: String) => x.equals("AVAILABLE")
 
   def getCab(id: Long) = Action.async { implicit request =>
-    dbc.cab(id).map { cab =>
+    dbc.getCabById(id).map { cab =>
       val res = cab.map(c => CabClient(c.id, c.registrationNumber, c.driverId, setStatus(c.cabStatus), c.comments, c.varancy))
       Ok(Json.toJson(res))
     }
@@ -52,7 +52,7 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
     val json = request.body.asJson.get
     val cab = json.as[CabClient]
     val newCab = Cab(cab.cabId, cab.registrationNumber, cab.driverId, setStatusBool(cab.cabStatus), cab.comments, cab.varancy)
-    dbc.cab(newCab)
+    dbc.insertCab(newCab)
     Ok
   }
   

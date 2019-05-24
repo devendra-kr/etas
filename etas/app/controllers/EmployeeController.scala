@@ -26,14 +26,14 @@ class EmployeeController @Inject() (cc: ControllerComponents, dbc: DBConnection)
   //val Log = LoggerFactory getLogger getClass
 
   def getEmployees = Action.async { implicit request =>
-    dbc.employees().map { emp =>
+    dbc.getAllEmployees().map { emp =>
       val res = emp.map(e => EmployeeClient(e.id, e.fullName, e.designation, e.joiningDate.getTime, e.email, e.phone, e.address))
       Ok(Json.toJson(res))
     }
   }
 
   def getEmployee(id: Long) = Action.async { implicit request =>
-    dbc.employee(id).map { emp =>
+    dbc.getEmployeeById(id).map { emp =>
       val res = emp.map(e => EmployeeClient(e.id, e.fullName, e.designation, e.joiningDate.getTime, e.email, e.phone, e.address))
       Ok(Json.toJson(res))
     }

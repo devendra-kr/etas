@@ -13,7 +13,7 @@ import models.Employee
 import java.sql.Timestamp
 import models.Cab
 import models.Booking
-import models.Request
+import models.UserRequest
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
@@ -42,11 +42,11 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
 
   private val Employees = TableQuery[EmployeeTable]
 
-  def employees(): Future[Seq[Employee]] = db.run {
+  def getAllEmployees(): Future[Seq[Employee]] = db.run {
     Employees.result
   }
 
-  def employee(id: Long): Future[Seq[Employee]] = db.run {
+  def getEmployeeById(id: Long): Future[Seq[Employee]] = db.run {
     Employees.filter(f => f.id === id).result
   }
 
@@ -77,15 +77,15 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
 
   private val Cabs = TableQuery[CabTable]
 
-  def cabs(): Future[Seq[Cab]] = db.run {
+  def getAllCabs(): Future[Seq[Cab]] = db.run {
     Cabs.result
   }
 
-  def cab(id: Long): Future[Seq[Cab]] = db.run {
+  def getCabById(id: Long): Future[Seq[Cab]] = db.run {
     Cabs.filter(f => f.id === id).result
   }
 
-  def cab(cab: Cab) = {
+  def insertCab(cab: Cab) = {
     Await.result(db.run(DBIO.seq(
       Cabs += cab,
       Cabs.result.map(println))), Duration.Inf)
@@ -116,24 +116,36 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
 
   private val Bookings = TableQuery[BookingTable]
 
-  def bookings(): Future[Seq[Booking]] = db.run {
-    Bookings.result
+  def getBookingById(id: Long): Future[Seq[Booking]] = db.run {
+    Bookings.filter(f => f.id === id).result
+  }
+  
+  def insertBooking(book: Booking) = {
+    Await.result(db.run(DBIO.seq(
+      Bookings += book,
+      Bookings.result.map(println))), Duration.Inf)
   }
 
-  private class RequestTable(tag: Tag) extends Table[Request](tag, "request") {
+  private class RequestTable(tag: Tag) extends Table[UserRequest](tag, "request") {
     def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
     def status = column[String]("status")
     def comments = column[Option[String]]("comments")
     def bookingId = column[Option[Long]]("booking_id")
     def creationDate = column[Timestamp]("creation_date")
-    def generator = column[String]("generator")
-    def * = (id, status, comments, bookingId, creationDate, generator) <> ((Request.apply _).tupled, Request.unapply)
+    def generator = column[Long]("generator")
+    def * = (id, status, comments, bookingId, creationDate, generator) <> ((UserRequest.apply _).tupled, UserRequest.unapply)
   }
 
   private val Requests = TableQuery[RequestTable]
 
-  def requests(): Future[Seq[Request]] = db.run {
-    Requests.result
+  def getRequestById(id: Long): Future[Seq[UserRequest]] = db.run {
+    Requests.filter(f => f.id === id).result
+  }
+  
+  def insertRequest(req: UserRequest) = {
+    Await.result(db.run(DBIO.seq(
+      Requests += req,
+      Requests.result.map(println))), Duration.Inf)
   }
 
 }
