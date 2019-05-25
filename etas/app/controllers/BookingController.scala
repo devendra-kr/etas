@@ -37,16 +37,25 @@ class BookingController @Inject() (cc: ControllerComponents, dbc: DBConnection)(
   def requestBooking() = Action { request =>
     val json = request.body.asJson.get
     val res = json.as[BookingRequest]
-    val status = executeSynchronous(dbc.getAvailableCab, "").isDefined
-    val bookingId = if(status) {
-      val bookRes = Booking(-1L, res.sourceLocation, new Timestamp(res.dateTimeOfJourney), res.employeeId, status)
+    val cabInfo = executeSynchronous(dbc.getAvailableCab, "")
+    val bookingId = if(cabInfo.isDefined) {
+      val cab = cabInfo.get.map(x => (x.registrationNumber, x.driverId)).head
+      val bookRes = Booking(-1L, res.sourceLocation, new Timestamp(res.dateTimeOfJourney), res.employeeId, true, cab._1, cab._2)
       val id = Await.result(dbc.insertBooking(bookRes), Duration.Inf).id
       Some(id)
     } else None
-    val userRequest = UserRequest(-1L, "", Some(""), bookingId, new Timestamp(System.currentTimeMillis()), res.employeeId)
+    val userRequest = UserRequest(-1L, "", Some(""), bookingId, res.sourceLocation, new Timestamp(res.dateTimeOfJourney), new Timestamp(System.currentTimeMillis()), res.employeeId)
     val resId = dbc.insertRequest(userRequest).map(x => RequestSuccessRes(x.id))
     Ok(Json.toJson(executeSynchronous(resId, "").getOrElse(RequestSuccessRes(-1L))))
   }
+  
+  /*curl \
+    --header "Content-type: application/json" \
+    --request POST \
+    --data '{"sourceLocation": "Chanda Nagar", "dateTimeOfJourney": 1558883264000, "employeeId": 5}' \
+    http://localhost:9000/request
+    * `
+    */
   
   def bookingConstraints(doj: Long, source: String, doc: Option[Long]) = {
     val upperTimeBound = System.currentTimeMillis + 2 * 24 * 60 * 60L
@@ -60,20 +69,19 @@ class BookingController @Inject() (cc: ControllerComponents, dbc: DBConnection)(
   
   def getRequest(id: Long) = Action.async { implicit request =>
     dbc.getRequestById(id).map { req =>
-      val sourceLocation = ""
-      val dateTimeOfJourney = 1L
-      val res = req.map(r => RequestClient(r.id, r.status, r.comments, r.bookingId, sourceLocation, dateTimeOfJourney, r.creationDate.getTime, r.requestGenerator))
+      val res = req.map(r => RequestClient(r.id, r.status, r.comments, r.bookingId, r.sourceLocation, r.dateTimeOfJourney.getTime, r.creationDate.getTime, r.requestGenerator))
       Ok(Json.toJson(res))
     }
   }
   
   def getBooking(id: Long) = Action.async { implicit request =>
     dbc.getBookingById(id).map { b =>
-      val res = b.map(x => BookingClient(x.id, x.sourceLocation, x.dateTimeOfJourney.getTime, x.employeeId))
+      val res = b.map(x => BookingClient(x.id, x.sourceLocation, x.dateTimeOfJourney.getTime,
+          getBookingStatus(x.status), x.employeeId.toString, x.vehicleDetails, x.driverId.toString))
       Ok(Json.toJson(res))
     }
   }
-
   
-  
+  val getBookingStatus = (status: Boolean) => if(status) "CONFIRMED" else "CANCELLED"
+    
 }

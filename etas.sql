@@ -33,6 +33,8 @@ create table booking(
 	datetime_journey  TIMESTAMP NOT NULL,
 	employee_id BIGINT NOT NULL,
 	status BOOLEAN NOT NULL,
+	registration_number VARCHAR(50) NOT NULL,
+	driver_id BIGINT NOT NULL,
 	PRIMARY KEY (id),
     CONSTRAINT FK_EmployeeBooking FOREIGN KEY (employee_id) REFERENCES employee(id)
 	);
@@ -42,6 +44,8 @@ create table request(
 	status VARCHAR(15) NOT NULL,
 	comments VARCHAR(500),
 	booking_id BIGINT,
+	source_location VARCHAR(50) NOT NULL,
+	datetime_journey  TIMESTAMP NOT NULL,
 	creation_date TIMESTAMP NOT NULL,
 	generator BIGINT NOT NULL,
 	PRIMARY KEY (id),

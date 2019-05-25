@@ -18,14 +18,15 @@ case object CabClient {
   implicit val cabClientFormat = Json.format[CabClient]
 }
 
-case class Booking(id: Long, sourceLocation: String, dateTimeOfJourney: Timestamp, employeeId: Long, status: Boolean)
-case class BookingClient(id: Long, sourceLocation: String, dateTimeOfJourney: Long, employeeId: Long)
+case class Booking(id: Long, sourceLocation: String, dateTimeOfJourney: Timestamp, employeeId: Long, status: Boolean, vehicleDetails: String, driverId: Long)
+case class BookingClient(bookingId: Long, sourceLocation: String, dateTimeOfJourney: Long, bookingStatus: String, passengerDetails: String,
+      vehicleDetails: String, driverDetails: String)
 
 case object BookingClient {
   implicit val bookingClientFormat = Json.format[BookingClient]
 }
 
-case class UserRequest(id: Long, status: String, comments: Option[String], bookingId: Option[Long], creationDate: Timestamp, requestGenerator: Long)
+case class UserRequest(id: Long, status: String, comments: Option[String], bookingId: Option[Long], sourceLocation: String, dateTimeOfJourney: Timestamp, creationDate: Timestamp, requestGenerator: Long)
 case class RequestClient(requestId: Long, requestStatus: String, comments: Option[String], bookingId: Option[Long], sourceLocation: String, dateTimeOfJourney: Long, requestCreationDate: Long, requestGenerator: Long)
 case object RequestClient {
   implicit val requestClientFormat = Json.format[RequestClient]
@@ -44,16 +45,3 @@ case class BookingRequest(sourceLocation: String, dateTimeOfJourney: Long, emplo
 case object BookingRequest {
   implicit val bookingRequestFormat = Json.format[BookingRequest]
 }
-
-case class BookingResponse(requestId: Long)
-case class BookingErrorCode(ERROR_CODE: String)
-
-  /*
-create table request(
-	id BIGINT NOT NULL,
-	status VARCHAR(15) NOT NULL,
-	commnets VARCHAR(500),
-	booking_id BIGINT,
-	creation_date TIMESTAMP NOT NULL,
-	generator VARCHAR(50) NOT NULL
-*/

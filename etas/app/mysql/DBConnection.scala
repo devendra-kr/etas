@@ -115,7 +115,9 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     def datetimeJourney = column[Timestamp]("datetime_journey")
     def employeeId = column[Long]("employee_id")
     def status = column[Boolean]("status")
-    def * = (id, sourceLocation, datetimeJourney, employeeId, status) <> ((Booking.apply _).tupled, Booking.unapply)
+    def registrationNumber = column[String]("registration_number")
+    def driverId = column[Long]("driver_id")
+    def * = (id, sourceLocation, datetimeJourney, employeeId, status, registrationNumber, driverId) <> ((Booking.apply _).tupled, Booking.unapply)
   }
 
   private val Bookings = TableQuery[BookingTable]
@@ -138,9 +140,11 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     def status = column[String]("status")
     def comments = column[Option[String]]("comments")
     def bookingId = column[Option[Long]]("booking_id")
+    def sourceLocation = column[String]("source_location")
+    def datetimeJourney = column[Timestamp]("datetime_journey")
     def creationDate = column[Timestamp]("creation_date")
     def generator = column[Long]("generator")
-    def * = (id, status, comments, bookingId, creationDate, generator) <> ((UserRequest.apply _).tupled, UserRequest.unapply)
+    def * = (id, status, comments, bookingId, sourceLocation, datetimeJourney, creationDate, generator) <> ((UserRequest.apply _).tupled, UserRequest.unapply)
   }
 
   private val Requests = TableQuery[RequestTable]
