@@ -26,9 +26,18 @@ case object BookingClient {
 }
 
 case class UserRequest(id: Long, status: String, comments: Option[String], bookingId: Option[Long], creationDate: Timestamp, requestGenerator: Long)
-case class RequestClient(id: Long, requestStatus: String, comments: Option[String], bookingId: Long, sourceLocation: String, dateTimeOfJourney: Long, requestCreationDate: Long, requestGenerator: Long)
+case class RequestClient(requestId: Long, requestStatus: String, comments: Option[String], bookingId: Option[Long], sourceLocation: String, dateTimeOfJourney: Long, requestCreationDate: Long, requestGenerator: Long)
 case object RequestClient {
   implicit val requestClientFormat = Json.format[RequestClient]
+}
+
+case class RequestSuccessRes(requestId: Long)
+case object RequestSuccessRes {
+  implicit val requestSuccessResFormat = Json.format[RequestSuccessRes]
+}
+case class RequestErrorRes(ERROR_CODE: String)
+case object RequestErrorRes {
+  implicit val requestErrorResFormat = Json.format[RequestErrorRes]
 }
 
 case class BookingRequest(sourceLocation: String, dateTimeOfJourney: Long, employeeId: Long)

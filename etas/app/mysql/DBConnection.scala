@@ -84,6 +84,10 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   def getCabById(id: Long): Future[Seq[Cab]] = db.run {
     Cabs.filter(f => f.id === id).result
   }
+  
+  def getAvailableCab(): Future[Seq[Cab]] = db.run {
+    Cabs.filter(f => f.status && f.varancy > 0).result
+  }
 
   def insertCab(cab: Cab) = {
     Await.result(db.run(DBIO.seq(
@@ -120,11 +124,14 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     Bookings.filter(f => f.id === id).result
   }
   
-  def insertBooking(book: Booking) = {
+ /* def insertBooking(book: Booking) = {
     Await.result(db.run(DBIO.seq(
       Bookings += book,
       Bookings.result.map(println))), Duration.Inf)
-  }
+  }*/
+  
+  def insertBooking(book: Booking) = db.run(Bookings returning Bookings.map(_.id) += book)
+  .map(id => book.copy(id = id))
 
   private class RequestTable(tag: Tag) extends Table[UserRequest](tag, "request") {
     def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
@@ -142,10 +149,13 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     Requests.filter(f => f.id === id).result
   }
   
-  def insertRequest(req: UserRequest) = {
+  /*def insertRequest(req: UserRequest) = {
     Await.result(db.run(DBIO.seq(
       Requests += req,
       Requests.result.map(println))), Duration.Inf)
-  }
+  }*/
+  
+  def insertRequest(req: UserRequest) = db.run(Requests returning Requests.map(_.id) += req)
+  .map(id => req.copy(id = id))
 
 }

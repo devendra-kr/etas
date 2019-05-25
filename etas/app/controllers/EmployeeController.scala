@@ -62,7 +62,7 @@ class EmployeeController @Inject() (cc: ControllerComponents, dbc: DBConnection)
    * curl \
     --header "Content-type: application/json" \
     --request POST \
-    --data '{"id": 3,"fullName": "Mahi","designation": "home work","joiningDate": 7598437597349,"email": "emailID","phone": "050943543","address": ""
+    --data '{"id": -1,"fullName": "Mahendra Kumar","designation": "SE","joiningDate": 1558796864000,"email": "mahik@gmail.com","phone": "9505398922","address": ""
 }' \
     http://localhost:9000/employee
     *
@@ -79,7 +79,7 @@ class EmployeeController @Inject() (cc: ControllerComponents, dbc: DBConnection)
   /*curl \
     --header "Content-type: application/json" \
     --request PUT \
-    --data '{"id": 3,"fullName": "Mahi KR","designation": "home work","joiningDate": 1558614140,"email": "emailID","phone": "050943543","address": ""
+    --data '{"id": 3,"fullName": "Mahendra Kr","designation": "SSD","joiningDate": 1558796864000,"email": "mahik171@gmail.com","phone": "9505398921","address": "updated address"
 }' \
     http://localhost:9000/employee
     * 

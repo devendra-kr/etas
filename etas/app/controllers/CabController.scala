@@ -29,7 +29,7 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
 
   val setStatus = (x: Boolean) => if (x) "AVAILABLE" else "UNAVAILABLE"
     
-  val setStatusBool = (x: String) => x.equals("AVAILABLE")
+  val setStatusBool = (x: String) => x.toUpperCase.equals("AVAILABLE")
 
   def getCab(id: Long) = Action.async { implicit request =>
     dbc.getCabById(id).map { cab =>
@@ -59,7 +59,7 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
   /*curl \
     --header "Content-type: application/json" \
     --request POST \
-    --data '{"cabId": 2,"registrationNumber": "String","driverId": 2,"cabStatus": "Avl","comments": "","varancy": 4}' \
+    --data '{"cabId": -1,"registrationNumber": "XYZ_123_ABC","driverId": 3,"cabStatus": "AVAILABLE","comments": "","varancy": 4}' \
     http://localhost:9000/cabs
     * 
 		*/
@@ -75,7 +75,7 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
   /*curl \
     --header "Content-type: application/json" \
     --request PUT \
-    --data '{"cabId": 2,"registrationNumber": "String","driverId": 2,"cabStatus": "Avl","comments": "","varancy": 4}' \
+    --data '{"cabId": 1,"registrationNumber": "XYZ_123_ABCDE","driverId": 3,"cabStatus": "UNAVAILABLE","comments": "Updated","varancy": 4}' \
     http://localhost:9000/cabs
     * 
 		*/
