@@ -11,12 +11,14 @@ case object EmployeeClient {
   implicit val employeeClientFormat = Json.format[EmployeeClient]
 }
 
-case class Cab(id: Long, registrationNumber: String, driverId: Long, cabStatus: Boolean, comments: Option[String], varancy: Int)
-case class CabClient(cabId: Long, registrationNumber: String, driverId: Long, cabStatus: String, comments: Option[String], varancy: Int)
+case class Cab(id: Long, registrationNumber: String, driverId: Long, cabStatus: Boolean, comments: Option[String], vacancy: Int)
+case class CabClient(cabId: Long, registrationNumber: String, driverId: Long, cabStatus: String, comments: Option[String], vacancy: Int)
 
 case object CabClient {
   implicit val cabClientFormat = Json.format[CabClient]
 }
+
+case class Source(id: Long, cabId: Long, location: String)
 
 case class Booking(id: Long, sourceLocation: String, dateTimeOfJourney: Timestamp, employeeId: Long, status: Boolean, vehicleDetails: String, driverId: Long)
 case class BookingClient(bookingId: Long, sourceLocation: String, dateTimeOfJourney: Long, bookingStatus: String, passengerDetails: String,

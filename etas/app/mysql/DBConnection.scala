@@ -16,6 +16,7 @@ import models.Booking
 import models.UserRequest
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import models.Source
 
 /**
  *
@@ -71,8 +72,8 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     def driverId = column[Long]("driver_id")
     def status = column[Boolean]("status")
     def comments = column[Option[String]]("comments")
-    def varancy = column[Int]("varancy")
-    def * = (id, registrationNumber, driverId, status, comments, varancy) <> ((Cab.apply _).tupled, Cab.unapply)
+    def vacancy = column[Int]("vacancy")
+    def * = (id, registrationNumber, driverId, status, comments, vacancy) <> ((Cab.apply _).tupled, Cab.unapply)
   }
 
   private val Cabs = TableQuery[CabTable]
@@ -85,8 +86,11 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     Cabs.filter(f => f.id === id).result
   }
   
-  def getAvailableCab(): Future[Seq[Cab]] = db.run {
-    Cabs.filter(f => f.status && f.varancy > 0).result
+  def getAvailableCab(location: String): Future[Seq[Cab]] = {
+    val cabs = for {
+    (c, l) <- Cabs.filter(f => f.status && f.vacancy > 0).join(Sources.filter(f => f.location === location)).on(_.id === _.cabId)
+    } yield (c)
+    db.run { cabs.result }
   }
 
   def insertCab(cab: Cab) = {
@@ -108,6 +112,20 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   def deleteCab(id: Long) = {
       db.run(Cabs.filter(_.id === id).delete) map { _ > 0 }
   }
+  
+  private class SourceTable(tag: Tag) extends Table[Source](tag, "source") {
+    def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
+    def cabId = column[Long]("cabId")
+    def location = column[String]("location")
+    def * = (id, cabId, location) <> ((Source.apply _).tupled, Source.unapply)
+  }
+  
+  private val Sources = TableQuery[SourceTable]
+  
+  def getSourceByLocation(location: String): Future[Seq[Source]] = db.run {
+    Sources.filter(f => f.location === location).result
+  }
+
 
   private class BookingTable(tag: Tag) extends Table[Booking](tag, "booking") {
     def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
@@ -163,3 +181,12 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   .map(id => req.copy(id = id))
 
 }
+
+
+
+
+
+
+
+
+

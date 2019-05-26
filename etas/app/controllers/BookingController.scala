@@ -22,6 +22,7 @@ import models.Utilities._
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import models.RequestSuccessRes
+import models.RequestErrorRes
 
 @Singleton
 class BookingController @Inject() (cc: ControllerComponents, dbc: DBConnection)(implicit ec: ExecutionContext) extends AbstractController(cc) {
@@ -37,18 +38,22 @@ class BookingController @Inject() (cc: ControllerComponents, dbc: DBConnection)(
   def requestBooking() = Action { request =>
     val json = request.body.asJson.get
     val res = json.as[BookingRequest]
-    val cabInfo = executeSynchronous(dbc.getAvailableCab, "")
-    val bookingId = if(cabInfo.isDefined) {
-      val cab = cabInfo.get.map(x => (x.registrationNumber, x.driverId)).head
-      val bookRes = Booking(-1L, res.sourceLocation, new Timestamp(res.dateTimeOfJourney), res.employeeId, true, cab._1, cab._2)
-      val id = Await.result(dbc.insertBooking(bookRes), Duration.Inf).id
-      Some(id)
-    } else None
-    val userRequest = UserRequest(-1L, "", Some(""), bookingId, res.sourceLocation, new Timestamp(res.dateTimeOfJourney), new Timestamp(System.currentTimeMillis()), res.employeeId)
+    val bookingConstraint = bookingConstraints(res.dateTimeOfJourney, res.sourceLocation, None)
+    val bookingRes = if(bookingConstraint.isEmpty()) {
+      val cabInfo = toSimpleOptionForSeq(executeSynchronous(dbc.getAvailableCab(res.sourceLocation), ""))
+      if(!cabInfo.isEmpty){
+        val cab = cabInfo.map(x => (x.registrationNumber, x.driverId)).head
+        val bookRes = Booking(-1L, res.sourceLocation, new Timestamp(res.dateTimeOfJourney), res.employeeId, true, cab._1, cab._2)
+        val bookingId = Await.result(dbc.insertBooking(bookRes), Duration.Inf).id
+        ("", Some(bookingId))
+      } else ("CAB_NOT_AVAILBLE", None)
+    } else (bookingConstraint, None)
+    val userRequest = UserRequest(-1L, "", Some(""), bookingRes._2, res.sourceLocation, new Timestamp(res.dateTimeOfJourney), new Timestamp(System.currentTimeMillis()), res.employeeId)
     val resId = dbc.insertRequest(userRequest).map(x => RequestSuccessRes(x.id))
-    Ok(Json.toJson(executeSynchronous(resId, "").getOrElse(RequestSuccessRes(-1L))))
+    if(bookingRes._2.isDefined) Ok(Json.toJson(executeSynchronous(resId, "").getOrElse(RequestSuccessRes(-1L))))
+    else Ok(Json.toJson(RequestErrorRes(bookingRes._1)))
   }
-  
+    
   /*curl \
     --header "Content-type: application/json" \
     --request POST \
@@ -58,12 +63,14 @@ class BookingController @Inject() (cc: ControllerComponents, dbc: DBConnection)(
     */
   
   def bookingConstraints(doj: Long, source: String, doc: Option[Long]) = {
-    val upperTimeBound = System.currentTimeMillis + 2 * 24 * 60 * 60L
-    val lowerTimeBound = System.currentTimeMillis + 12 * 60 * 60L
+    val upperTimeBound = System.currentTimeMillis + 2 * 24 * 60 * 60 * 1000L
+    val lowerTimeBound = System.currentTimeMillis + 12 * 60 * 60 * 1000L
     val cancellationTimeBound = 3 * 60 * 60L
-    doj match {
-      case d if(d > upperTimeBound || d < lowerTimeBound) => "REQUEST_NOT_POSSIBLE"
-      case d if(!TimeUtils.isValidTripTime(d)) => "INVALID_TRIP_TIME"
+    (doj, source) match {
+      case d if(d._1 > upperTimeBound || d._1 < lowerTimeBound) => "REQUEST_NOT_POSSIBLE"
+     // case d if(!TimeUtils.isValidTripTime(d._1)) => "INVALID_TRIP_TIME"
+      case d if(toSimpleOptionForSeq(executeSynchronous(dbc.getSourceByLocation(d._2), "")).isEmpty) => "SOURCE_INVALID"
+      case _ => ""
     }
   }
   

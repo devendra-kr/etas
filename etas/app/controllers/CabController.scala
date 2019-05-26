@@ -22,7 +22,7 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
 
   def getCabs = Action.async { implicit request =>
     dbc.getAllCabs().map { cab =>
-      val res = cab.map(c => CabClient(c.id, c.registrationNumber, c.driverId, setStatus(c.cabStatus), c.comments, c.varancy))
+      val res = cab.map(c => CabClient(c.id, c.registrationNumber, c.driverId, setStatus(c.cabStatus), c.comments, c.vacancy))
       Ok(Json.toJson(res))
     }
   }
@@ -33,7 +33,7 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
 
   def getCab(id: Long) = Action.async { implicit request =>
     dbc.getCabById(id).map { cab =>
-      val res = cab.map(c => CabClient(c.id, c.registrationNumber, c.driverId, setStatus(c.cabStatus), c.comments, c.varancy))
+      val res = cab.map(c => CabClient(c.id, c.registrationNumber, c.driverId, setStatus(c.cabStatus), c.comments, c.vacancy))
       Ok(Json.toJson(res))
     }
   }
@@ -51,7 +51,7 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
   def saveCab = Action { request =>
     val json = request.body.asJson.get
     val cab = json.as[CabClient]
-    val newCab = Cab(cab.cabId, cab.registrationNumber, cab.driverId, setStatusBool(cab.cabStatus), cab.comments, cab.varancy)
+    val newCab = Cab(cab.cabId, cab.registrationNumber, cab.driverId, setStatusBool(cab.cabStatus), cab.comments, cab.vacancy)
     dbc.insertCab(newCab)
     Ok
   }
@@ -59,7 +59,7 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
   /*curl \
     --header "Content-type: application/json" \
     --request POST \
-    --data '{"cabId": -1,"registrationNumber": "XYZ_123_ABC","driverId": 3,"cabStatus": "AVAILABLE","comments": "","varancy": 4}' \
+    --data '{"cabId": -1,"registrationNumber": "XYZ_123_ABC","driverId": 3,"cabStatus": "AVAILABLE","comments": "","vacancy": 4}' \
     http://localhost:9000/cabs
     * 
 		*/
@@ -67,7 +67,7 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
   def updateCab = Action { request =>
     val json = request.body.asJson.get
     val cab = json.as[CabClient]
-    val newCab = Cab(cab.cabId, cab.registrationNumber, cab.driverId, setStatusBool(cab.cabStatus), cab.comments, cab.varancy)
+    val newCab = Cab(cab.cabId, cab.registrationNumber, cab.driverId, setStatusBool(cab.cabStatus), cab.comments, cab.vacancy)
     dbc.updateCab(newCab)
     Ok
   }

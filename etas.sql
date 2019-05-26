@@ -52,3 +52,14 @@ create table request(
 	CONSTRAINT FK_EmployeeRequest FOREIGN KEY (generator) REFERENCES employee(id),
 	CONSTRAINT FK_BookingRequest FOREIGN KEY (booking_id) REFERENCES booking(id)
 	);
+
+create table source(
+	id BIGINT NOT NULL AUTO_INCREMENT,
+	cabId BIGINT NOT NULL,
+	location VARCHAR(50) NOT NULL,
+	PRIMARY KEY (id),
+	CONSTRAINT FK_CabSource FOREIGN KEY (cabId) REFERENCES cab(id)
+	);
+
+
+ALTER TABLE cab CHANGE `varancy` `vacancy` INT;
