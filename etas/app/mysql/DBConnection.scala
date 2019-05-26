@@ -134,6 +134,10 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   def getSourceByLocation(location: String): Future[Seq[Source]] = db.run {
     Sources.filter(f => f.location === location).result
   }
+  
+  def getLocationByCabId(cabId: Long): Future[Seq[Source]] = db.run {
+    Sources.filter(f => f.cabId === cabId).result
+  }
 
 
   private class BookingTable(tag: Tag) extends Table[Booking](tag, "booking") {
@@ -155,6 +159,11 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   
   def insertBooking(book: Booking) = db.run(Bookings returning Bookings.map(_.id) += book)
   .map(id => book.copy(id = id))
+  
+  def updateBooking(id: Long, regNo: String, driverId: Long) = {
+    val booking = for (c <- Bookings if c.id === id) yield (c.registrationNumber, c.driverId)
+      db.run(booking.update(regNo, driverId)) map { _ > 0 }
+  }
 
   private class RequestTable(tag: Tag) extends Table[UserRequest](tag, "request") {
     def id = column[Long]("id", O.PrimaryKey, O.AutoInc)

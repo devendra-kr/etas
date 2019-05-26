@@ -49,12 +49,12 @@ class BookingController @Inject() (cc: ControllerComponents, dbc: DBConnection)(
         ("", Some(bookingId))
       } else ("CAB_NOT_AVAILBLE", None)
     } else (bookingConstraint, None)
-    val userRequest = UserRequest(-1L, "", Some(""), bookingRes._2, res.sourceLocation, new Timestamp(res.dateTimeOfJourney), new Timestamp(System.currentTimeMillis()), res.employeeId)
+    val userRequest = UserRequest(-1L, if(bookingRes._2.isDefined) "GENERATED" else "FAILED", Some(""), bookingRes._2, res.sourceLocation, new Timestamp(res.dateTimeOfJourney), new Timestamp(System.currentTimeMillis()), res.employeeId)
     val resId = dbc.insertRequest(userRequest).map(x => RequestSuccessRes(x.id))
     if(bookingRes._2.isDefined) Ok(Json.toJson(executeSynchronous(resId, "").getOrElse(RequestSuccessRes(-1L))))
     else Ok(Json.toJson(RequestErrorRes(bookingRes._1)))
   }
-    
+      
   /*curl \
     --header "Content-type: application/json" \
     --request POST \

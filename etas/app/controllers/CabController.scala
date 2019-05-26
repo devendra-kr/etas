@@ -12,6 +12,7 @@ import play.api.libs.json.JsValue
 import play.api.libs.json.JsResult
 import play.api.libs.json.JsSuccess
 import models.Cab
+import models.Utilities._
 
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -82,11 +83,24 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
   
   def updateCabStatusAsActive(id: Long) = updateCabStatus(id, true)
 
-  def updateCabStatusAsInActive(id: Long) = updateCabStatus(id, false)
+  def updateCabStatusAsInActive(id: Long) = {
+    updateCabStatus(id, false)
+    val location = toSimpleOptionForSeq(executeSynchronous(dbc.getLocationByCabId(id), "")).map(_.location).headOption
+    if(location.isDefined)
+      allocateAnotherCab(location.get)
+  }
   
   private def updateCabStatus(id: Long, status: Boolean) = Action { request =>
     dbc.updateCab(id, status)
     Ok
+  }
+  
+  def allocateAnotherCab(sourceLocation: String) = {
+    val cabInfo = toSimpleOptionForSeq(executeSynchronous(dbc.getAvailableCab(sourceLocation), ""))
+    if(!cabInfo.isEmpty){
+      val cab = cabInfo.head
+      dbc.updateBooking(cab.id, cab.registrationNumber, cab.driverId)
+    }
   }
    
    /* curl -X PUT "http://localhost:9000/cabs/2/unavailable" */
