@@ -50,6 +50,10 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   def getEmployeeById(id: Long): Future[Seq[Employee]] = db.run {
     Employees.filter(f => f.id === id).result
   }
+  
+  def getEmployeeById(id: List[Long]): Future[Seq[Employee]] = db.run {
+    Employees.filter(f => f.id inSet(id)).result
+  }
 
   def insertEmployee(emp: Employee) = {
     Await.result(db.run(DBIO.seq(
@@ -104,6 +108,11 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       db.run(newCab.update(cab)) map { _ > 0 }
   }
   
+  def updateCabVacancy(id: Long, vacancy: Int) = {
+      val newCab = for (c <- Cabs if c.id === id) yield (c.vacancy)
+      db.run(newCab.update(vacancy)) map { _ > 0 }
+  }
+  
   def updateCab(id: Long, status: Boolean) = {
       val newCab = for (c <- Cabs if c.id === id) yield (c.status)
       db.run(newCab.update(status)) map { _ > 0 }
@@ -143,12 +152,6 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   def getBookingById(id: Long): Future[Seq[Booking]] = db.run {
     Bookings.filter(f => f.id === id).result
   }
-  
- /* def insertBooking(book: Booking) = {
-    Await.result(db.run(DBIO.seq(
-      Bookings += book,
-      Bookings.result.map(println))), Duration.Inf)
-  }*/
   
   def insertBooking(book: Booking) = db.run(Bookings returning Bookings.map(_.id) += book)
   .map(id => book.copy(id = id))

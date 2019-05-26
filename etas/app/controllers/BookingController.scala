@@ -42,9 +42,10 @@ class BookingController @Inject() (cc: ControllerComponents, dbc: DBConnection)(
     val bookingRes = if(bookingConstraint.isEmpty()) {
       val cabInfo = toSimpleOptionForSeq(executeSynchronous(dbc.getAvailableCab(res.sourceLocation), ""))
       if(!cabInfo.isEmpty){
-        val cab = cabInfo.map(x => (x.registrationNumber, x.driverId)).head
-        val bookRes = Booking(-1L, res.sourceLocation, new Timestamp(res.dateTimeOfJourney), res.employeeId, true, cab._1, cab._2)
+        val cab = cabInfo.head
+        val bookRes = Booking(-1L, res.sourceLocation, new Timestamp(res.dateTimeOfJourney), res.employeeId, true, cab.registrationNumber, cab.driverId)
         val bookingId = Await.result(dbc.insertBooking(bookRes), Duration.Inf).id
+        dbc.updateCabVacancy(cab.id, cab.vacancy - 1)
         ("", Some(bookingId))
       } else ("CAB_NOT_AVAILBLE", None)
     } else (bookingConstraint, None)
@@ -68,7 +69,7 @@ class BookingController @Inject() (cc: ControllerComponents, dbc: DBConnection)(
     val cancellationTimeBound = 3 * 60 * 60L
     (doj, source) match {
       case d if(d._1 > upperTimeBound || d._1 < lowerTimeBound) => "REQUEST_NOT_POSSIBLE"
-     // case d if(!TimeUtils.isValidTripTime(d._1)) => "INVALID_TRIP_TIME"
+      case d if(!TimeUtils.isValidTripTime(d._1)) => "INVALID_TRIP_TIME"
       case d if(toSimpleOptionForSeq(executeSynchronous(dbc.getSourceByLocation(d._2), "")).isEmpty) => "SOURCE_INVALID"
       case _ => ""
     }
@@ -77,15 +78,18 @@ class BookingController @Inject() (cc: ControllerComponents, dbc: DBConnection)(
   def getRequest(id: Long) = Action.async { implicit request =>
     dbc.getRequestById(id).map { req =>
       val res = req.map(r => RequestClient(r.id, r.status, r.comments, r.bookingId, r.sourceLocation, r.dateTimeOfJourney.getTime, r.creationDate.getTime, r.requestGenerator))
-      Ok(Json.toJson(res))
+      if(res.isEmpty) Ok(Json.toJson(RequestErrorRes("INVALID_REQUEST_ID"))) else Ok(Json.toJson(res))
     }
   }
   
   def getBooking(id: Long) = Action.async { implicit request =>
     dbc.getBookingById(id).map { b =>
-      val res = b.map(x => BookingClient(x.id, x.sourceLocation, x.dateTimeOfJourney.getTime,
-          getBookingStatus(x.status), x.employeeId.toString, x.vehicleDetails, x.driverId.toString))
-      Ok(Json.toJson(res))
+      val res = b.map(x => {
+        val emp = toSimpleOptionForSeq(executeSynchronous(dbc.getEmployeeById(List(x.employeeId, x.driverId)), "")).map(x => (x.id, x.fullName)).toMap
+        BookingClient(x.id, x.sourceLocation, x.dateTimeOfJourney.getTime,
+          getBookingStatus(x.status), emp.get(x.employeeId).getOrElse(""), x.vehicleDetails, emp.get(x.driverId).getOrElse(""))
+    })
+      if(res.isEmpty) Ok(Json.toJson(RequestErrorRes("INVALID_BOOKING_ID"))) else Ok(Json.toJson(res))
     }
   }
   
