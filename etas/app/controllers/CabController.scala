@@ -84,10 +84,11 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
   def updateCabStatusAsActive(id: Long) = updateCabStatus(id, true)
 
   def updateCabStatusAsInActive(id: Long) = {
-    updateCabStatus(id, false)
+    val res = updateCabStatus(id, false)
     val location = toSimpleOptionForSeq(executeSynchronous(dbc.getLocationByCabId(id), "")).map(_.location).headOption
     if(location.isDefined)
       allocateAnotherCab(location.get)
+    res
   }
   
   private def updateCabStatus(id: Long, status: Boolean) = Action { request =>
