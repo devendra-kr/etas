@@ -13,6 +13,7 @@ import play.api.libs.json.JsResult
 import play.api.libs.json.JsSuccess
 import models.Cab
 import models.Utilities._
+import org.slf4j.LoggerFactory
 
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -20,7 +21,8 @@ import models.Utilities._
  */
 @Singleton
 class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(implicit ec: ExecutionContext) extends AbstractController(cc) {
-
+  val Log = LoggerFactory getLogger getClass
+  
   def getCabs = Action.async { implicit request =>
     dbc.getAllCabs().map { cab =>
       val res = cab.map(c => CabClient(c.id, c.registrationNumber, c.driverId, setStatus(c.cabStatus), c.comments, c.vacancy))
@@ -53,7 +55,12 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
     val json = request.body.asJson.get
     val cab = json.as[CabClient]
     val newCab = Cab(cab.cabId, cab.registrationNumber, cab.driverId, setStatusBool(cab.cabStatus), cab.comments, cab.vacancy)
-    dbc.insertCab(newCab)
+    try {
+      dbc.insertCab(newCab)
+    } catch {
+      case ex: Exception => ex.printStackTrace()
+      Log info "unique key constraint violation"
+    }
     Ok
   }
   
@@ -69,7 +76,12 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
     val json = request.body.asJson.get
     val cab = json.as[CabClient]
     val newCab = Cab(cab.cabId, cab.registrationNumber, cab.driverId, setStatusBool(cab.cabStatus), cab.comments, cab.vacancy)
-    dbc.updateCab(newCab)
+    try {
+      dbc.updateCab(newCab)
+    } catch {
+      case ex: Exception => ex.printStackTrace()
+      Log info "unique key constraint violation"
+    }
     Ok
   }
   

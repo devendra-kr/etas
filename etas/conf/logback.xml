@@ -11,7 +11,7 @@
 		<file>logs/scope_server.log</file>
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
 			<!-- daily rollover -->
-			<fileNamePattern>logs/etasserver.%d{yyyy-MM-dd}.log.zip</fileNamePattern>
+			<fileNamePattern>logs/etas_server.%d{yyyy-MM-dd}.log.zip</fileNamePattern>
 			<!-- keep 30 days' worth of history -->
 			<maxHistory>30</maxHistory>
 			<timeBasedFileNamingAndTriggeringPolicy	class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">

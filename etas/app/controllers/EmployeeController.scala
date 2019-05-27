@@ -15,6 +15,7 @@ import play.api.mvc.ControllerComponents
 import views.html.helper.CSRF
 import models.Employee
 import java.sql.Timestamp
+import org.slf4j.LoggerFactory
 
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -23,7 +24,7 @@ import java.sql.Timestamp
 
 @Singleton
 class EmployeeController @Inject() (cc: ControllerComponents, dbc: DBConnection)(implicit ec: ExecutionContext) extends AbstractController(cc) {
-  //val Log = LoggerFactory getLogger getClass
+  val Log = LoggerFactory getLogger getClass
 
   def getEmployees = Action.async { implicit request =>
     dbc.getAllEmployees().map { emp =>
@@ -54,7 +55,12 @@ class EmployeeController @Inject() (cc: ControllerComponents, dbc: DBConnection)
     val json = request.body.asJson.get
     val emp = json.as[EmployeeClient]
     val newEmp = Employee(emp.id, emp.fullName, emp.designation, new Timestamp(emp.joiningDate), emp.email, emp.phone, emp.address)
-    dbc.insertEmployee(newEmp)
+    try {
+      dbc.insertEmployee(newEmp)
+    } catch {
+      case ex: Exception => ex.printStackTrace()
+      Log info "unique key constraint violation"
+    }
     Ok
   }
 
@@ -72,7 +78,12 @@ class EmployeeController @Inject() (cc: ControllerComponents, dbc: DBConnection)
     val json = request.body.asJson.get
     val emp = json.as[EmployeeClient]
     val newEmp = Employee(emp.id, emp.fullName, emp.designation, new Timestamp(emp.joiningDate), emp.email, emp.phone, emp.address)
-    dbc.updateEmployee(newEmp)
+    try {
+      dbc.updateEmployee(newEmp)
+    } catch {
+      case ex: Exception => ex.printStackTrace()
+      Log info "unique key constraint violation"
+    }
     Ok
   }
   
