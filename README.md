@@ -5,6 +5,7 @@ javaVersion   := "1.8"
 SBTVersion    := 1.0
 scalaVersion := "2.12.8"
 Play Version := "1.7"
+MYSQL DB := Latest
 
 Developement build:
 sbt run
