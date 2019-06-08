@@ -25,3 +25,17 @@ Production build:
 8. copy run.sh file from main project direcory to etas-1.0-SNAPSHOT file(unzip folder).
 9. Execute the run.sh file in root mode. eg: sudo sh run.sh
 10. Application will run on port 82 which is configure into run.sh file. 
+
+DB installation and connection:-
+sudo apt-get install mysql-server
+sudo mysql_secure_installation -->You need to check MySQL servics running or not.
+1. Start the mysql Server ---> sudo service mysql start
+2. Stop the mysql Server --->  sudo service mysql stop
+3. Status the mysql Server ---> sudo service mysql status
+4. Get mysql commnad promt ---> sudo mysql -u root -p
+5. CREATE DATABASE etas;
+6. use etas
+7. Show tables in mysql ---> SHOW TABLES;
+8. describe table in mysql ---> DESCRIBE pet;
+9. INSERT INTO loction VALUES ('Puffball','Diane','hamster','f','1999-03-30',NULL);
+10. ALTER TABLE cab CHANGE `varancy` `vacancy` INT;
