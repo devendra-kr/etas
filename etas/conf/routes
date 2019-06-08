@@ -25,6 +25,9 @@ GET 	/request/:requestId 		controllers.BookingController.getRequest(requestId: L
 
 GET 	/booking/:bookingId			controllers.BookingController.getBooking(bookingId: Long)
 
+GET     /location                   controllers.BookingController.getLocation
+#POST    /location                   controllers.BookingController.SaveLocation
+
 
 
 

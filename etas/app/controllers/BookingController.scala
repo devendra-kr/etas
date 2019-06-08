@@ -54,6 +54,13 @@ class BookingController @Inject() (cc: ControllerComponents, dbc: DBConnection)(
     if(bookingRes._2.isDefined) Ok(Json.toJson(executeSynchronous(resId, "").getOrElse(RequestSuccessRes(-1L))))
     else Ok(Json.toJson(RequestErrorRes(bookingRes._1)))
   }
+  
+  def getLocation = Action.async {
+    Log info "get location"
+    dbc.getLocation.map { loc =>
+      Ok(Json.toJson(loc))
+    }
+  }
       
   /*curl \
     --header "Content-type: application/json" \
@@ -64,7 +71,7 @@ class BookingController @Inject() (cc: ControllerComponents, dbc: DBConnection)(
     */
   
   def bookingConstraints(doj: Long, source: String, doc: Option[Long]) = {
-    val upperTimeBound = System.currentTimeMillis + 2 * 24 * 60 * 60 * 1000L
+    val upperTimeBound = System.currentTimeMillis + 5 * 24 * 60 * 60 * 1000L
     val lowerTimeBound = System.currentTimeMillis + 12 * 60 * 60 * 1000L
     val cancellationTimeBound = 3 * 60 * 60L
     (doj, source) match {

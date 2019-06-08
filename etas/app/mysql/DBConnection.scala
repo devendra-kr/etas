@@ -135,6 +135,10 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     Sources.filter(f => f.location === location).result
   }
   
+  def getLocation: Future[Seq[Source]] = db.run {
+    Sources.result
+  }
+  
   def getLocationByCabId(cabId: Long): Future[Seq[Source]] = db.run {
     Sources.filter(f => f.cabId === cabId).result
   }

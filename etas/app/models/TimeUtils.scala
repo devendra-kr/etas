@@ -25,7 +25,7 @@ object TimeUtils {
     val days = (doj - System.currentTimeMillis) / oneDay
     val dayName = getTitleForDate("IST", days.toInt, "EN")
     val time = getTimeString("IST", doj)
-    isWeekDays(dayName) && (time >= "22" || time <= "01")
+    isWeekDays(dayName) && (time >= "09" || time <= "22")
   }
   
   def isWeekDays(dayName: String) = dayName match {
