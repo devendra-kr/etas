@@ -54,13 +54,6 @@ class BookingController @Inject() (cc: ControllerComponents, dbc: DBConnection)(
     if(bookingRes._2.isDefined) Ok(Json.toJson(executeSynchronous(resId, "").getOrElse(RequestSuccessRes(-1L))))
     else Ok(Json.toJson(RequestErrorRes(bookingRes._1)))
   }
-  
-  def getLocation = Action.async {
-    Log info "get location"
-    dbc.getLocation.map { loc =>
-      Ok(Json.toJson(loc))
-    }
-  }
       
   /*curl \
     --header "Content-type: application/json" \
@@ -75,9 +68,9 @@ class BookingController @Inject() (cc: ControllerComponents, dbc: DBConnection)(
     val lowerTimeBound = System.currentTimeMillis + 12 * 60 * 60 * 1000L
     val cancellationTimeBound = 3 * 60 * 60L
     (doj, source) match {
-      case d if(d._1 > upperTimeBound || d._1 < lowerTimeBound) => "REQUEST_NOT_POSSIBLE"
+//      case d if(d._1 > upperTimeBound || d._1 < lowerTimeBound) => "REQUEST_NOT_POSSIBLE"
       case d if(!TimeUtils.isValidTripTime(d._1)) => "INVALID_TRIP_TIME"
-      case d if(toSimpleOptionForSeq(executeSynchronous(dbc.getSourceByLocation(d._2), "")).isEmpty) => "SOURCE_INVALID"
+      case d if(toSimpleOptionForSeq(executeSynchronous(dbc.getLocationByName(d._2), "")).isEmpty) => "SOURCE_INVALID"
       case _ => ""
     }
   }
@@ -92,7 +85,7 @@ class BookingController @Inject() (cc: ControllerComponents, dbc: DBConnection)(
   def getBooking(id: Long) = Action.async { implicit request =>
     dbc.getBookingById(id).map { b =>
       val res = b.map(x => {
-        val emp = toSimpleOptionForSeq(executeSynchronous(dbc.getEmployeeById(List(x.employeeId, x.driverId)), "")).map(x => (x.id, x.fullName)).toMap
+        val emp = toSimpleOptionForSeq(executeSynchronous(dbc.getEmployeeByIds(List(x.employeeId, x.driverId)), "")).map(x => (x.id, x.fullName)).toMap
         BookingClient(x.id, x.sourceLocation, x.dateTimeOfJourney.getTime,
           getBookingStatus(x.status), emp.get(x.employeeId).getOrElse(""), x.vehicleDetails, emp.get(x.driverId).getOrElse(""))
     })

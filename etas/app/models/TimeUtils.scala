@@ -19,20 +19,21 @@ import java.time.temporal.ChronoUnit
 import java.util.Locale.Category
 
 object TimeUtils {
-  
+
   def isValidTripTime(doj: Long) = {
-    val oneDay = 24 * 60 * 60L
-    val days = (doj - System.currentTimeMillis) / oneDay
+    val oneDay = 24 * 60 * 60 * 1000L
+    val days = getDay("IST", ) //(doj - System.currentTimeMillis) / oneDay
     val dayName = getTitleForDate("IST", days.toInt, "EN")
     val time = getTimeString("IST", doj)
+    println(days + dayName + time)
     isWeekDays(dayName) && (time >= "09" || time <= "22")
   }
-  
+
   def isWeekDays(dayName: String) = dayName match {
-    case "Saturday" |"Sunday" => false
-    case _ => true
+    case "Saturday" | "Sunday" => false
+    case _                     => true
   }
-   
+
   def getTitleForDate(timeZone: String, days: Int, displayLangcode: String) = {
     val date = getCalendar(timeZone)
     date.add(Calendar.DATE, days)
@@ -40,14 +41,14 @@ object TimeUtils {
     val dayName = date.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.LONG, locale).capitalize
     s"$dayName"
   }
-  
+
   def getTimeString(timeZone: String, time: Long) = {
     val cal = Calendar.getInstance(TimeZone.getTimeZone(timeZone))
     cal.setTimeInMillis(time)
     val hourOfDay = cal.get(Calendar.HOUR_OF_DAY).toString
     (if (hourOfDay.length == 1) "0" else "") + hourOfDay
   }
-  
+
   def getCalendar(timeZone: String, date: Date = new Date()) = {
     val calendar = Calendar.getInstance(TimeZone.getTimeZone(timeZone))
     calendar.setTime(date)

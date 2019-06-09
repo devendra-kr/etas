@@ -57,11 +57,12 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
     val newCab = Cab(cab.cabId, cab.registrationNumber, cab.driverId, setStatusBool(cab.cabStatus), cab.comments, cab.vacancy)
     try {
       dbc.insertCab(newCab)
+      Ok("Cab Details Inserted Successfully.")
     } catch {
       case ex: Exception => ex.printStackTrace()
       Log info "unique key constraint violation"
+      Ok("Registration_number already exist into DB or DriverId not the Employee")
     }
-    Ok
   }
   
   /*curl \
@@ -78,11 +79,12 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
     val newCab = Cab(cab.cabId, cab.registrationNumber, cab.driverId, setStatusBool(cab.cabStatus), cab.comments, cab.vacancy)
     try {
       dbc.updateCab(newCab)
+      Ok("Cab Details Updated Successfully.")
     } catch {
       case ex: Exception => ex.printStackTrace()
       Log info "unique key constraint violation"
+      Ok("Registration_number already exist into DB or DriverId not the Employee")
     }
-    Ok
   }
   
   /*curl \
@@ -97,7 +99,7 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
 
   def updateCabStatusAsInActive(id: Long) = {
     val res = updateCabStatus(id, false)
-    val location = toSimpleOptionForSeq(executeSynchronous(dbc.getLocationByCabId(id), "")).map(_.location).headOption
+    val location = toSimpleOptionForSeq(executeSynchronous(dbc.getLocationByCabId(id), "")).map(_.name).headOption
     if(location.isDefined)
       allocateAnotherCab(location.get)
     res
@@ -105,7 +107,7 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
   
   private def updateCabStatus(id: Long, status: Boolean) = Action { request =>
     dbc.updateCab(id, status)
-    Ok
+    Ok("Cab Status Changed")
   }
   
   def allocateAnotherCab(sourceLocation: String) = {

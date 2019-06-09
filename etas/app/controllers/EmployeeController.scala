@@ -57,11 +57,13 @@ class EmployeeController @Inject() (cc: ControllerComponents, dbc: DBConnection)
     val newEmp = Employee(emp.id, emp.fullName, emp.designation, new Timestamp(emp.joiningDate), emp.email, emp.phone, emp.address)
     try {
       dbc.insertEmployee(newEmp)
+      Ok("Emplyolee Details Inserted Successfully.")
     } catch {
-      case ex: Exception => ex.printStackTrace()
-      Log info "unique key constraint violation"
+      case ex: Exception =>
+        ex.printStackTrace()
+        Log info "unique key constraint violation"
+        Ok("EmailId OR Phone number already exist into DB.")
     }
-    Ok
   }
 
   /*
@@ -73,35 +75,36 @@ class EmployeeController @Inject() (cc: ControllerComponents, dbc: DBConnection)
     http://localhost:9000/employee
     *
     */
-  
+
   def updateEmployee = Action { request =>
     val json = request.body.asJson.get
     val emp = json.as[EmployeeClient]
     val newEmp = Employee(emp.id, emp.fullName, emp.designation, new Timestamp(emp.joiningDate), emp.email, emp.phone, emp.address)
     try {
       dbc.updateEmployee(newEmp)
+      Ok("Emplyolee Details Updated Successfully.")
     } catch {
-      case ex: Exception => ex.printStackTrace()
-      Log info "unique key constraint violation"
+      case ex: Exception =>
+        ex.printStackTrace()
+        Log info "unique key constraint violation"
+        Ok("EmailId OR Phone number already exist into DB.")
     }
-    Ok
   }
-  
+
   /*curl \
     --header "Content-type: application/json" \
     --request PUT \
     --data '{"id": 3,"fullName": "Mahendra Kr","designation": "SSD","joiningDate": 1558796864000,"email": "mahik171@gmail.com","phone": "9505398921","address": "updated address"
 }' \
     http://localhost:9000/employee
-    * 
+    *
     */
-  
+
   def deleteEmployee(id: Long) = Action.async { implicit request =>
-    dbc.deleteEmployee(id).map { emp => Ok(Json.toJson(emp))
+    dbc.deleteEmployee(id).map { emp => Ok(Json.toJson("EmployeeId " + id + "Delete Status is" + emp))
     }
   }
-  
-  /* curl -X DELETE "http://localhost:9000/employee/1" */
 
+  /* curl -X DELETE "http://localhost:9000/employee/1" */
 
 }

@@ -16,7 +16,7 @@ import models.Booking
 import models.UserRequest
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-import models.Source
+import models.Location
 
 /**
  *
@@ -51,7 +51,7 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     Employees.filter(f => f.id === id).result
   }
   
-  def getEmployeeById(id: List[Long]): Future[Seq[Employee]] = db.run {
+  def getEmployeeByIds(id: List[Long]): Future[Seq[Employee]] = db.run {
     Employees.filter(f => f.id inSet(id)).result
   }
 
@@ -92,7 +92,7 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   
   def getAvailableCab(location: String): Future[Seq[Cab]] = {
     val cabs = for {
-    (c, l) <- Cabs.filter(f => f.status && f.vacancy > 0).join(Sources.filter(f => f.location === location)).on(_.id === _.cabId)
+    (c, l) <- Cabs.filter(f => f.status && f.vacancy > 0).join(Locations.filter(f => f.name === location)).on(_.id === _.cabId)
     } yield (c)
     db.run { cabs.result }
   }
@@ -122,25 +122,36 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       db.run(Cabs.filter(_.id === id).delete) map { _ > 0 }
   }
   
-  private class SourceTable(tag: Tag) extends Table[Source](tag, "source") {
+  private class LocationTable(tag: Tag) extends Table[Location](tag, "location") {
     def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
     def cabId = column[Long]("cabId")
-    def location = column[String]("location")
-    def * = (id, cabId, location) <> ((Source.apply _).tupled, Source.unapply)
+    def name = column[String]("name")
+    def * = (id, cabId, name) <> ((Location.apply _).tupled, Location.unapply)
   }
   
-  private val Sources = TableQuery[SourceTable]
+  private val Locations = TableQuery[LocationTable]
   
-  def getSourceByLocation(location: String): Future[Seq[Source]] = db.run {
-    Sources.filter(f => f.location === location).result
+  def getLocationByName(name: String): Future[Seq[Location]] = db.run {
+    Locations.filter(f => f.name === name).result
   }
   
-  def getLocation: Future[Seq[Source]] = db.run {
-    Sources.result
+  def getLocation: Future[Seq[Location]] = db.run {
+    Locations.result
   }
   
-  def getLocationByCabId(cabId: Long): Future[Seq[Source]] = db.run {
-    Sources.filter(f => f.cabId === cabId).result
+  def insertLocation(location: Location) = {
+    Await.result(db.run(DBIO.seq(
+      Locations += location,
+      Locations.result.map(println))), Duration.Inf)
+  }
+  
+  def updateLocation(location: Location) = {
+      val newlocation = for (c <- Locations if c.id === location.id) yield (c)
+      db.run(newlocation.update(location)) map { _ > 0 }
+  }
+  
+  def getLocationByCabId(cabId: Long): Future[Seq[Location]] = db.run {
+    Locations.filter(f => f.cabId === cabId).result
   }
 
 

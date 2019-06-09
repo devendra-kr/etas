@@ -21,7 +21,7 @@ create table cab(
 	driver_id BIGINT NOT NULL,
 	status BOOLEAN NOT NULL,
 	comments VARCHAR(500),
-	varancy INT NOT NULL,
+	vacancy INT NOT NULL,
 	PRIMARY KEY (id),
 	CONSTRAINT UC_Cab_RegistrationNumber UNIQUE (registration_number),
 	CONSTRAINT FK_EmployeeCab FOREIGN KEY (driver_id) REFERENCES employee(id)
@@ -53,13 +53,12 @@ create table request(
 	CONSTRAINT FK_BookingRequest FOREIGN KEY (booking_id) REFERENCES booking(id)
 	);
 
-create table source(
+create table location(
 	id BIGINT NOT NULL AUTO_INCREMENT,
 	cabId BIGINT NOT NULL,
-	location VARCHAR(50) NOT NULL,
+	name VARCHAR(50) NOT NULL,
 	PRIMARY KEY (id),
 	CONSTRAINT FK_CabSource FOREIGN KEY (cabId) REFERENCES cab(id)
 	);
 
 
-ALTER TABLE cab CHANGE `varancy` `vacancy` INT;

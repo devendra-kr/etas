@@ -18,9 +18,9 @@ case object CabClient {
   implicit val cabClientFormat = Json.format[CabClient]
 }
 
-case class Source(id: Long, cabId: Long, location: String)
-case object Source {
-  implicit val sourceFormat = Json.format[Source]
+case class Location(id: Long, cabId: Long, name: String)
+case object Location {
+  implicit val locationFormat = Json.format[Location]
 }
 
 case class Booking(id: Long, sourceLocation: String, dateTimeOfJourney: Timestamp, employeeId: Long, status: Boolean, vehicleDetails: String, driverId: Long)
