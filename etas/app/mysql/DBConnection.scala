@@ -50,9 +50,9 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   def getEmployeeById(id: Long): Future[Seq[Employee]] = db.run {
     Employees.filter(f => f.id === id).result
   }
-  
+
   def getEmployeeByIds(id: List[Long]): Future[Seq[Employee]] = db.run {
-    Employees.filter(f => f.id inSet(id)).result
+    Employees.filter(f => f.id inSet (id)).result
   }
 
   def insertEmployee(emp: Employee) = {
@@ -60,14 +60,14 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       Employees += emp,
       Employees.result.map(println))), Duration.Inf)
   }
-  
+
   def updateEmployee(emp: Employee) = {
-      val newEmp = for (e <- Employees if e.id === emp.id) yield (e)
-      db.run(newEmp.update(emp)) map { _ > 0 }
+    val newEmp = for (e <- Employees if e.id === emp.id) yield (e)
+    db.run(newEmp.update(emp)) map { _ > 0 }
   }
-  
+
   def deleteEmployee(id: Long) = {
-      db.run(Employees.filter(_.id === id).delete) map { _ > 0 }
+    db.run(Employees.filter(_.id === id).delete) map { _ > 0 }
   }
 
   private class CabTable(tag: Tag) extends Table[Cab](tag, "cab") {
@@ -89,10 +89,10 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   def getCabById(id: Long): Future[Seq[Cab]] = db.run {
     Cabs.filter(f => f.id === id).result
   }
-  
+
   def getAvailableCab(location: String): Future[Seq[Cab]] = {
     val cabs = for {
-    (c, l) <- Cabs.filter(f => f.status && f.vacancy > 0).join(Locations.filter(f => f.name === location)).on(_.id === _.cabId)
+      (c, l) <- Cabs.filter(f => f.status && f.vacancy > 0).join(Locations.filter(f => f.name === location)).on(_.id === _.cabId)
     } yield (c)
     db.run { cabs.result }
   }
@@ -102,58 +102,57 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       Cabs += cab,
       Cabs.result.map(println))), Duration.Inf)
   }
-  
+
   def updateCab(cab: Cab) = {
-      val newCab = for (c <- Cabs if c.id === cab.id) yield (c)
-      db.run(newCab.update(cab)) map { _ > 0 }
+    val newCab = for (c <- Cabs if c.id === cab.id) yield (c)
+    db.run(newCab.update(cab)) map { _ > 0 }
   }
-  
-  def updateCabVacancy(id: Long, vacancy: Int) = {
-      val newCab = for (c <- Cabs if c.id === id) yield (c.vacancy)
-      db.run(newCab.update(vacancy)) map { _ > 0 }
+
+  def updateCabVacancy(id: Long, vacancy: Int, status: Boolean) = {
+    val newCab = for (c <- Cabs if c.id === id) yield (c.vacancy, c.status)
+    db.run(newCab.update(vacancy, status)) map { _ > 0 }
   }
-  
+
   def updateCab(id: Long, status: Boolean) = {
-      val newCab = for (c <- Cabs if c.id === id) yield (c.status)
-      db.run(newCab.update(status)) map { _ > 0 }
+    val newCab = for (c <- Cabs if c.id === id) yield (c.status)
+    db.run(newCab.update(status)) map { _ > 0 }
   }
-   
+
   def deleteCab(id: Long) = {
-      db.run(Cabs.filter(_.id === id).delete) map { _ > 0 }
+    db.run(Cabs.filter(_.id === id).delete) map { _ > 0 }
   }
-  
+
   private class LocationTable(tag: Tag) extends Table[Location](tag, "location") {
     def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
     def cabId = column[Long]("cabId")
     def name = column[String]("name")
     def * = (id, cabId, name) <> ((Location.apply _).tupled, Location.unapply)
   }
-  
+
   private val Locations = TableQuery[LocationTable]
-  
+
   def getLocationByName(name: String): Future[Seq[Location]] = db.run {
     Locations.filter(f => f.name === name).result
   }
-  
+
   def getLocation: Future[Seq[Location]] = db.run {
     Locations.result
   }
-  
+
   def insertLocation(location: Location) = {
     Await.result(db.run(DBIO.seq(
       Locations += location,
       Locations.result.map(println))), Duration.Inf)
   }
-  
+
   def updateLocation(location: Location) = {
-      val newlocation = for (c <- Locations if c.id === location.id) yield (c)
-      db.run(newlocation.update(location)) map { _ > 0 }
+    val newlocation = for (c <- Locations if c.id === location.id) yield (c)
+    db.run(newlocation.update(location)) map { _ > 0 }
   }
-  
+
   def getLocationByCabId(cabId: Long): Future[Seq[Location]] = db.run {
     Locations.filter(f => f.cabId === cabId).result
   }
-
 
   private class BookingTable(tag: Tag) extends Table[Booking](tag, "booking") {
     def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
@@ -171,13 +170,20 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   def getBookingById(id: Long): Future[Seq[Booking]] = db.run {
     Bookings.filter(f => f.id === id).result
   }
-  
+
   def insertBooking(book: Booking) = db.run(Bookings returning Bookings.map(_.id) += book)
-  .map(id => book.copy(id = id))
-  
-  def updateBooking(id: Long, regNo: String, driverId: Long) = {
-    val booking = for (c <- Bookings if c.id === id) yield (c.registrationNumber, c.driverId)
-      db.run(booking.update(regNo, driverId)) map { _ > 0 }
+    .map(id => book.copy(id = id))
+
+  def updateBooking(oldCabregNo: String, oldCabDriverId: Long, regNo: String, driverId: Long) = {
+    val booking = for (c <- Bookings if (c.registrationNumber === oldCabregNo && c.driverId === oldCabDriverId && c.datetimeJourney >= new Timestamp(System.currentTimeMillis)))
+      yield (c.registrationNumber, c.driverId)
+    db.run(booking.update(regNo, driverId)) map { _ > 0 }
+  }
+
+  def updateBookingStatus(regNo: String, driverId: Long, count: Int, status: Boolean) = {
+    val booking = for (c <- Bookings if (c.registrationNumber === regNo && c.driverId === driverId && c.datetimeJourney >= new Timestamp(System.currentTimeMillis)))
+      yield (c.status)
+    db.run(booking.take(count).update(status)) map { _ > 0 }
   }
 
   private class RequestTable(tag: Tag) extends Table[UserRequest](tag, "request") {
@@ -197,15 +203,15 @@ class DBConnection @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   def getRequestById(id: Long): Future[Seq[UserRequest]] = db.run {
     Requests.filter(f => f.id === id).result
   }
-  
+
   /*def insertRequest(req: UserRequest) = {
     Await.result(db.run(DBIO.seq(
       Requests += req,
       Requests.result.map(println))), Duration.Inf)
   }*/
-  
+
   def insertRequest(req: UserRequest) = db.run(Requests returning Requests.map(_.id) += req)
-  .map(id => req.copy(id = id))
+    .map(id => req.copy(id = id))
 
 }
 

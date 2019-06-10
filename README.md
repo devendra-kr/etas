@@ -1,11 +1,14 @@
 # etas
 Employee Transport Allocation System
 
+Dependencies:-
 javaVersion   := "1.8"
 SBTVersion    := 1.0
 scalaVersion := "2.12.8"
 Play Version := "1.7"
 MYSQL DB := Latest
+
+API Collections: https://www.getpostman.com/collections/ad88395ce5d127e79f92
 
 Developement build:
 sbt run

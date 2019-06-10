@@ -20,13 +20,14 @@ PUT      /cabs/:cabId/available     controllers.CabController.updateCabStatusAsA
 PUT      /cabs/:cabId/unavailable   controllers.CabController.updateCabStatusAsInActive(cabId: Long)
 DELETE   /cabs/:cabId               controllers.CabController.deleteCab(cabId: Long)
 
-POST 	/request					controllers.BookingController.requestBooking()
-GET 	/request/:requestId 		controllers.BookingController.getRequest(requestId: Long)
+POST     /request                   controllers.BookingController.requestBooking()
+GET      /request/:requestId        controllers.BookingController.getRequest(requestId: Long)
 
-GET 	/booking/:bookingId			controllers.BookingController.getBooking(bookingId: Long)
+GET      /booking/:bookingId        controllers.BookingController.getBooking(bookingId: Long)
 
-GET     /location                   controllers.BookingController.getLocation
-#POST    /location                   controllers.BookingController.SaveLocation
+GET      /location                  controllers.LocationController.getLocation
+POST     /location                  controllers.LocationController.saveLocation
+PUT      /location                  controllers.LocationController.updateLocation
 
 
 

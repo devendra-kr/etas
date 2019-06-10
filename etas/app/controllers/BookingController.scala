@@ -39,22 +39,22 @@ class BookingController @Inject() (cc: ControllerComponents, dbc: DBConnection)(
     val json = request.body.asJson.get
     val res = json.as[BookingRequest]
     val bookingConstraint = bookingConstraints(res.dateTimeOfJourney, res.sourceLocation, None)
-    val bookingRes = if(bookingConstraint.isEmpty()) {
+    val bookingRes = if (bookingConstraint.isEmpty()) {
       val cabInfo = toSimpleOptionForSeq(executeSynchronous(dbc.getAvailableCab(res.sourceLocation), ""))
-      if(!cabInfo.isEmpty){
+      if (!cabInfo.isEmpty) {
         val cab = cabInfo.head
         val bookRes = Booking(-1L, res.sourceLocation, new Timestamp(res.dateTimeOfJourney), res.employeeId, true, cab.registrationNumber, cab.driverId)
         val bookingId = Await.result(dbc.insertBooking(bookRes), Duration.Inf).id
-        dbc.updateCabVacancy(cab.id, cab.vacancy - 1)
+        dbc.updateCabVacancy(cab.id, cab.vacancy - 1, if(cab.vacancy == 1) false else true)
         ("", Some(bookingId))
       } else ("CAB_NOT_AVAILBLE", None)
     } else (bookingConstraint, None)
-    val userRequest = UserRequest(-1L, if(bookingRes._2.isDefined) "GENERATED" else "FAILED", Some(""), bookingRes._2, res.sourceLocation, new Timestamp(res.dateTimeOfJourney), new Timestamp(System.currentTimeMillis()), res.employeeId)
+    val userRequest = UserRequest(-1L, if (bookingRes._2.isDefined) "GENERATED" else "FAILED", Some(""), bookingRes._2, res.sourceLocation, new Timestamp(res.dateTimeOfJourney), new Timestamp(System.currentTimeMillis()), res.employeeId)
     val resId = dbc.insertRequest(userRequest).map(x => RequestSuccessRes(x.id))
-    if(bookingRes._2.isDefined) Ok(Json.toJson(executeSynchronous(resId, "").getOrElse(RequestSuccessRes(-1L))))
+    if (bookingRes._2.isDefined) Ok(Json.toJson(executeSynchronous(resId, "").getOrElse(RequestSuccessRes(-1L))))
     else Ok(Json.toJson(RequestErrorRes(bookingRes._1)))
   }
-      
+
   /*curl \
     --header "Content-type: application/json" \
     --request POST \
@@ -62,37 +62,36 @@ class BookingController @Inject() (cc: ControllerComponents, dbc: DBConnection)(
     http://localhost:9000/request
     * `
     */
-  
+
   def bookingConstraints(doj: Long, source: String, doc: Option[Long]) = {
     val upperTimeBound = System.currentTimeMillis + 5 * 24 * 60 * 60 * 1000L
     val lowerTimeBound = System.currentTimeMillis + 12 * 60 * 60 * 1000L
     val cancellationTimeBound = 3 * 60 * 60L
-    (doj, source) match {
-//      case d if(d._1 > upperTimeBound || d._1 < lowerTimeBound) => "REQUEST_NOT_POSSIBLE"
-      case d if(!TimeUtils.isValidTripTime(d._1)) => "INVALID_TRIP_TIME"
-      case d if(toSimpleOptionForSeq(executeSynchronous(dbc.getLocationByName(d._2), "")).isEmpty) => "SOURCE_INVALID"
-      case _ => ""
-    }
+    val timeZone = "IST"
+    if (doj > upperTimeBound || doj < lowerTimeBound) "REQUEST_NOT_POSSIBLE"
+    else if (TimeUtils.isInvalidTripTime(doj, timeZone)) "INVALID_TRIP_TIME"
+    else if (toSimpleOptionForSeq(executeSynchronous(dbc.getLocationByName(source), "")).isEmpty) "SOURCE_INVALID"
+    else ""
   }
-  
+
   def getRequest(id: Long) = Action.async { implicit request =>
     dbc.getRequestById(id).map { req =>
       val res = req.map(r => RequestClient(r.id, r.status, r.comments, r.bookingId, r.sourceLocation, r.dateTimeOfJourney.getTime, r.creationDate.getTime, r.requestGenerator))
-      if(res.isEmpty) Ok(Json.toJson(RequestErrorRes("INVALID_REQUEST_ID"))) else Ok(Json.toJson(res))
+      if (res.isEmpty) Ok(Json.toJson(RequestErrorRes("INVALID_REQUEST_ID"))) else Ok(Json.toJson(res))
     }
   }
-  
+
   def getBooking(id: Long) = Action.async { implicit request =>
     dbc.getBookingById(id).map { b =>
       val res = b.map(x => {
         val emp = toSimpleOptionForSeq(executeSynchronous(dbc.getEmployeeByIds(List(x.employeeId, x.driverId)), "")).map(x => (x.id, x.fullName)).toMap
         BookingClient(x.id, x.sourceLocation, x.dateTimeOfJourney.getTime,
           getBookingStatus(x.status), emp.get(x.employeeId).getOrElse(""), x.vehicleDetails, emp.get(x.driverId).getOrElse(""))
-    })
-      if(res.isEmpty) Ok(Json.toJson(RequestErrorRes("INVALID_BOOKING_ID"))) else Ok(Json.toJson(res))
+      })
+      if (res.isEmpty) Ok(Json.toJson(RequestErrorRes("INVALID_BOOKING_ID"))) else Ok(Json.toJson(res))
     }
   }
-  
-  val getBookingStatus = (status: Boolean) => if(status) "CONFIRMED" else "CANCELLED"
-    
+
+  val getBookingStatus = (status: Boolean) => if (status) "CONFIRMED" else "CANCELLED"
+
 }

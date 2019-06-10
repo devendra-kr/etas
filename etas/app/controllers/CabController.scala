@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory
 @Singleton
 class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(implicit ec: ExecutionContext) extends AbstractController(cc) {
   val Log = LoggerFactory getLogger getClass
-  
+
   def getCabs = Action.async { implicit request =>
     dbc.getAllCabs().map { cab =>
       val res = cab.map(c => CabClient(c.id, c.registrationNumber, c.driverId, setStatus(c.cabStatus), c.comments, c.vacancy))
@@ -31,7 +31,7 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
   }
 
   val setStatus = (x: Boolean) => if (x) "AVAILABLE" else "UNAVAILABLE"
-    
+
   val setStatusBool = (x: String) => x.toUpperCase.equals("AVAILABLE")
 
   def getCab(id: Long) = Action.async { implicit request =>
@@ -50,7 +50,7 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
     val varancy = (json \ "varancy").as[Int]
     JsSuccess(CabClient(id, registrationNumber, driverId, cabStatus, Some(comments), varancy))
   }
-  
+
   def saveCab = Action { request =>
     val json = request.body.asJson.get
     val cab = json.as[CabClient]
@@ -59,20 +59,21 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
       dbc.insertCab(newCab)
       Ok("Cab Details Inserted Successfully.")
     } catch {
-      case ex: Exception => ex.printStackTrace()
-      Log info "unique key constraint violation"
-      Ok("Registration_number already exist into DB or DriverId not the Employee")
+      case ex: Exception =>
+        ex.printStackTrace()
+        Log info "unique key constraint violation"
+        Ok("Registration_number already exist into DB or DriverId not the Employee")
     }
   }
-  
+
   /*curl \
     --header "Content-type: application/json" \
     --request POST \
     --data '{"cabId": -1,"registrationNumber": "XYZ_123_ABC","driverId": 3,"cabStatus": "AVAILABLE","comments": "","vacancy": 4}' \
     http://localhost:9000/cabs
-    * 
+    *
 		*/
-  
+
   def updateCab = Action { request =>
     val json = request.body.asJson.get
     val cab = json.as[CabClient]
@@ -81,49 +82,53 @@ class CabController @Inject() (cc: ControllerComponents, dbc: DBConnection)(impl
       dbc.updateCab(newCab)
       Ok("Cab Details Updated Successfully.")
     } catch {
-      case ex: Exception => ex.printStackTrace()
-      Log info "unique key constraint violation"
-      Ok("Registration_number already exist into DB or DriverId not the Employee")
+      case ex: Exception =>
+        ex.printStackTrace()
+        Log info "unique key constraint violation"
+        Ok("Registration_number already exist into DB or DriverId not the Employee")
     }
   }
-  
+
   /*curl \
     --header "Content-type: application/json" \
     --request PUT \
     --data '{"cabId": 1,"registrationNumber": "XYZ_123_ABCDE","driverId": 3,"cabStatus": "UNAVAILABLE","comments": "Updated","varancy": 4}' \
     http://localhost:9000/cabs
-    * 
+    *
 		*/
-  
+
   def updateCabStatusAsActive(id: Long) = updateCabStatus(id, true)
 
   def updateCabStatusAsInActive(id: Long) = {
-    val res = updateCabStatus(id, false)
     val location = toSimpleOptionForSeq(executeSynchronous(dbc.getLocationByCabId(id), "")).map(_.name).headOption
-    if(location.isDefined)
-      allocateAnotherCab(location.get)
-    res
+    if (location.isDefined)
+      allocateAnotherCab(id, location.get)
+    updateCabStatus(id, false)
   }
-  
+
   private def updateCabStatus(id: Long, status: Boolean) = Action { request =>
     dbc.updateCab(id, status)
     Ok("Cab Status Changed")
   }
-  
-  def allocateAnotherCab(sourceLocation: String) = {
+
+  def allocateAnotherCab(canceledCabId: Long, sourceLocation: String) = {
     val cabInfo = toSimpleOptionForSeq(executeSynchronous(dbc.getAvailableCab(sourceLocation), ""))
-    if(!cabInfo.isEmpty){
+    val canceledCabInfo = toSimpleOptionForSeq(executeSynchronous(dbc.getCabById(canceledCabId), ""))
+    if (!cabInfo.isEmpty && !canceledCabInfo.isEmpty && canceledCabInfo.head.cabStatus) {
       val cab = cabInfo.head
-      dbc.updateBooking(cab.id, cab.registrationNumber, cab.driverId)
+      val oldCabInfo = canceledCabInfo.head
+      dbc.updateBooking(oldCabInfo.registrationNumber, oldCabInfo.driverId, cab.registrationNumber, cab.driverId)
+      dbc.updateCabVacancy(cab.id, cab.vacancy - 4 + oldCabInfo.vacancy, if (cab.vacancy == 1) false else true)
+      if ((oldCabInfo.vacancy + -4 + cab.vacancy) < 0) dbc.updateBookingStatus(oldCabInfo.registrationNumber, oldCabInfo.driverId, -(oldCabInfo.vacancy + -4 + cab.vacancy), false)
     }
   }
-   
-   /* curl -X PUT "http://localhost:9000/cabs/2/unavailable" */
-  
-   def deleteCab(id: Long) = Action.async { implicit request =>
+
+  /* curl -X PUT "http://localhost:9000/cabs/2/unavailable" */
+
+  def deleteCab(id: Long) = Action.async { implicit request =>
     dbc.deleteCab(id).map { cab => Ok(Json.toJson(cab))
     }
   }
-  
+
   /* curl -X DELETE "http://localhost:9000/cabs/2" */
 }

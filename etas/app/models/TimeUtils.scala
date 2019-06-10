@@ -19,24 +19,23 @@ import java.time.temporal.ChronoUnit
 import java.util.Locale.Category
 
 object TimeUtils {
+  val Log = LoggerFactory getLogger getClass
 
-  def isValidTripTime(doj: Long) = {
-    val oneDay = 24 * 60 * 60 * 1000L
-    val days = getDay("IST", ) //(doj - System.currentTimeMillis) / oneDay
-    val dayName = getTitleForDate("IST", days.toInt, "EN")
-    val time = getTimeString("IST", doj)
-    println(days + dayName + time)
-    isWeekDays(dayName) && (time >= "09" || time <= "22")
+  def isInvalidTripTime(doj: Long, timeZone: String) = {
+    val dayName = getTitleForDate(timeZone, doj, "EN")
+    val time = getTimeString(timeZone, doj)
+    Log info dayName + ", " + time
+    isWeekedDays(dayName) || time > "22" || time < "09"
   }
 
-  def isWeekDays(dayName: String) = dayName match {
-    case "Saturday" | "Sunday" => false
-    case _                     => true
+  def isWeekedDays(dayName: String) = dayName match {
+    case "Saturday" | "Sunday" => true
+    case _                     => false
   }
 
-  def getTitleForDate(timeZone: String, days: Int, displayLangcode: String) = {
+  def getTitleForDate(timeZone: String, time: Long, displayLangcode: String) = {
     val date = getCalendar(timeZone)
-    date.add(Calendar.DATE, days)
+    date.setTimeInMillis(time)
     val locale = new Locale.Builder().setLanguage(displayLangcode).build()
     val dayName = date.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.LONG, locale).capitalize
     s"$dayName"
@@ -45,8 +44,10 @@ object TimeUtils {
   def getTimeString(timeZone: String, time: Long) = {
     val cal = Calendar.getInstance(TimeZone.getTimeZone(timeZone))
     cal.setTimeInMillis(time)
-    val hourOfDay = cal.get(Calendar.HOUR_OF_DAY).toString
-    (if (hourOfDay.length == 1) "0" else "") + hourOfDay
+    val hourOfDay = cal.get(Calendar.HOUR_OF_DAY) //.toString
+    val minute = cal.get(Calendar.MINUTE)
+    val hour = if (minute > 0) (hourOfDay + 1).toString else hourOfDay.toString
+    (if (hour.length == 1) "0" else "") + hour
   }
 
   def getCalendar(timeZone: String, date: Date = new Date()) = {
